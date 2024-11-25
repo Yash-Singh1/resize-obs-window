@@ -1,6 +1,6 @@
 # OBS Resize
 
-Resize and move your windows to prevent your OBS Webcam from blocking it.
+Resize your windows to prevent your OBS Webcam from blocking it.
 
 ## Permissions
 
@@ -16,7 +16,11 @@ Make sure you enable the WebSocket server option in OBS Studio. To figure out ho
 
 ### 2. Use Resize OBS Window
 
-Whenever you have OBS Studio open in the background, you can run the `Resize OBS Window` command on any visible window, to resize it so that your webcam doesn't block the window's view for your users. OBS Studio recognizes cameras with any video capure devices or another source that includes `#cam#` in its name.
+Whenever you have your OBS Websocket server running open in the background, you can run the `Resize OBS Window` command on any visible window, to resize it so that your webcam doesn't block the window's view for your viewers. This plugin recognizes cameras with any video capture devices or another source that includes `#cam#` in its name. Currently only the screen capture source is supported for the screen as this is extension built for local OBS usage.
+
+If you would like to configure the padding between windows and your camera, you can use the `Configure Raycast Plugin` command.
+
+As of now, you have to resize each window one by one, this may change in the future with a different command.
 
 ## Compatability
 

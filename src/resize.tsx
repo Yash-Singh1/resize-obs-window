@@ -57,8 +57,6 @@ export default async function Command() {
     sceneItems: SceneItem[];
   };
 
-  // We have tons of rectangle geometry here
-
   // 1. Get the scene items we are targeting
 
   const screen = sceneItems.find((item) => {
@@ -108,12 +106,15 @@ export default async function Command() {
     const mxX = Math.max(cam.sceneItemTransform.positionX, screenDims.x);
     const mnX = Math.min(cam.sceneItemTransform.positionX + cam.sceneItemTransform.width, screenDims.x2);
     if (mxX - screenDims.x < screenDims.x2 - mnX) {
+      // This is the case where the camera is on the left hand side
       screenDims.x = mxX;
     } else {
+      // This is the case where the camera is on the right hand side
       screenDims.x2 = Math.min(cam.sceneItemTransform.positionX, screenDims.x2);
     }
   }
 
+  // Add the padding if needed
   if (screenDims.x !== screen.sceneItemTransform.positionX) {
     screenDims.x += paddingX;
   }

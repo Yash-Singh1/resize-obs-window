@@ -130,7 +130,14 @@ export default async function Command() {
     screenDims.y2 -= paddingY;
   }
 
-  console.debug("New OBS Screen Dims", screenDims);
+  console.debug(
+    "New OBS Screen Dims",
+    screenDims,
+    "scale x",
+    screen.sceneItemTransform.scaleX,
+    "scale y",
+    screen.sceneItemTransform.scaleY
+  );
 
   const frontmostApp = await getFrontmostApplication();
 
@@ -147,12 +154,12 @@ tell application "System Events" to tell process "${frontmostApp.name}"
     set m_pos to position of window 1
     set m_sz to size of window 1
     set position of window 1 to {${
-      ((screenDims.x - screen.sceneItemTransform.positionX) / 2) * screen.sceneItemTransform.scaleX
+      ((screenDims.x - screen.sceneItemTransform.positionX) / 2) / screen.sceneItemTransform.scaleX
     } + (item 1 of m_pos), ${
-      ((screenDims.y - screen.sceneItemTransform.positionY) / 2) * screen.sceneItemTransform.scaleY
+      ((screenDims.y - screen.sceneItemTransform.positionY) / 2) / screen.sceneItemTransform.scaleY
     } + (item 2 of m_pos)}
     set size of window 1 to {${
-      ((screenDims.x2 - screenDims.x) / 2) * screen.sceneItemTransform.scaleX
+      ((screenDims.x2 - screenDims.x) / 2) / screen.sceneItemTransform.scaleX
     } - (item 1 of m_pos), item 2 of m_sz} -- we leave y as is in case it's offscreen
 end tell
 `);

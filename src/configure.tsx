@@ -31,7 +31,7 @@ export default function Command() {
       <Form.TextField
         id="paddingY"
         defaultValue="0"
-        title="Vertical Padding"
+        title="Vertical Padding (WIP)"
         info="The offset on the vertical axis on either side (pixels)"
       />
     </Form>

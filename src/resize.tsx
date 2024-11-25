@@ -141,20 +141,19 @@ tell application "Finder"
 end tell
 
 tell application "System Events" to tell process "${frontmostApp.name}"
-    set pos to position of window 1
-    set sz to size of window 1
-    set position of window 1 to {0, 0}
-    set size of window 1 to {item 3 of screenResolution, item 4 of screenResolution}
+    -- default debugging fullscreen
+    -- set position of window 1 to {0, 0}
+    -- set size of window 1 to {item 3 of screenResolution, item 4 of screenResolution}
     set m_pos to position of window 1
     set m_sz to size of window 1
     set position of window 1 to {${
       ((screenDims.x - screen.sceneItemTransform.positionX) / 2) * screen.sceneItemTransform.scaleX
-    } - (item 1 of m_pos), ${
+    } + (item 1 of m_pos), ${
       ((screenDims.y - screen.sceneItemTransform.positionY) / 2) * screen.sceneItemTransform.scaleY
-    } - (item 2 of m_pos)}
-    set size of window 1 to {${((screenDims.x2 - screenDims.x) / 2) * screen.sceneItemTransform.scaleX}, ${
+    } + (item 2 of m_pos)}
+    set size of window 1 to {${((screenDims.x2 - screenDims.x) / 2) * screen.sceneItemTransform.scaleX} - (item 1 of m_pos), ${
       ((screenDims.y2 - screenDims.y) / 2) * screen.sceneItemTransform.scaleY
-    }}
+    } - (item 2 of m_pos)}
 end tell
 `);
   } catch (e) {

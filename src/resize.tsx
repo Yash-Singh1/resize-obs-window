@@ -88,7 +88,7 @@ export default async function Command() {
   /**
    * We need three config props for this
    * 1. Padding
-   * 2. Scale x or y or both
+   * 2. Scale x or y or both; TODO: support y scaling low priority
    * 3. Prefer left or right (factor at which)
    */
   for (const cam of cams) {
@@ -151,9 +151,9 @@ tell application "System Events" to tell process "${frontmostApp.name}"
     } + (item 1 of m_pos), ${
       ((screenDims.y - screen.sceneItemTransform.positionY) / 2) * screen.sceneItemTransform.scaleY
     } + (item 2 of m_pos)}
-    set size of window 1 to {${((screenDims.x2 - screenDims.x) / 2) * screen.sceneItemTransform.scaleX} - (item 1 of m_pos), ${
-      ((screenDims.y2 - screenDims.y) / 2) * screen.sceneItemTransform.scaleY
-    } - (item 2 of m_pos)}
+    set size of window 1 to {${
+      ((screenDims.x2 - screenDims.x) / 2) * screen.sceneItemTransform.scaleX
+    } - (item 1 of m_pos), item 2 of m_sz} -- we leave y as is in case it's offscreen
 end tell
 `);
   } catch (e) {

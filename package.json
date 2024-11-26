@@ -30,7 +30,7 @@
     }
   ],
   "dependencies": {
-    "@raycast/api": "^1.49.2",
+    "@raycast/api": "^1.86.1",
     "obs-websocket-js": "^5.0.2",
     "run-applescript": "^6.1.0"
   },

@@ -2,6 +2,7 @@ import { LocalStorage, Toast, closeMainWindow, getFrontmostApplication, showToas
 import { runAppleScript } from "run-applescript";
 import OBSWebSocket from "obs-websocket-js";
 import { connect } from "./utils/connect";
+import { execSync } from "child_process";
 
 const obs = new OBSWebSocket();
 
@@ -142,11 +143,71 @@ export default async function Command() {
 
   const frontmostApp = await getFrontmostApplication();
 
+  // Note: the sourceWidth and sourceHeight properties don't seem to reflect the screen's resolution
+  // We can't use the Window Management API since it requires Raycast Pro
+  // const windows = await WindowManagement.getWindowsOnActiveDesktop();
+  // TODO: figure out multi-monitor setups
+
+  // let resolutions: { width: number; height: number; type: number }[] = [];
+  // try {
+  //   // Execute the system_profiler command and parse the output
+  //   // https://stackoverflow.com/a/19594339/13514657
+  //   const shellOutput = execSync(
+  //     `/usr/sbin/system_profiler SPDisplaysDataType | awk '/Resolution:/{ printf "%s %s %s\\n", $2, $4, ($5 == "Retina" ? 2 : 1) }'`,
+  //     { shell: process.env.SHELL || "bash" }
+  //   ).toString();
+
+  //   // Parse resolutions from the shell output
+  //   resolutions = shellOutput
+  //     .trim()
+  //     .split("\n")
+  //     .map((line: string) => {
+  //       const [width, height, type] = line.split(" ").map(Number);
+  //       return { width, height, type };
+  //     });
+
+  //   // Check if resolutions were retrieved
+  //   if (resolutions.length === 0) {
+  //     throw new Error("No resolutions found. Please check your display settings.");
+  //   }
+
+  //   console.debug(resolutions);
+  // } catch (error) {
+  //   if (error instanceof Error) console.error("Error:", error.message);
+  //   else console.error("Error:", error);
+  // }
+
+  console.log(
+    screen.sceneItemTransform.scaleX * screen.sceneItemTransform.sourceWidth,
+    screen.sceneItemTransform.scaleY * screen.sceneItemTransform.sourceHeight
+  );
+
   try {
     await runAppleScript(`
-tell application "Finder"
-    set screenResolution to bounds of window of desktop
-end tell
+-- use framework "Foundation"
+use framework "AppKit"
+use scripting additions
+
+-- https://developer.apple.com/documentation/appkit/nsscreen, https://forum.latenightsw.com/t/get-sizes-of-monitor-s-via-applescript/1351/4
+-- set screenList to (current application's NSScreen's screens()'s valueForKey:"frame") as list
+set screen to (item 2 of (current application's NSScreen's screens()'s valueForKey:"frame") as list)
+
+-- Groups all monitors into one rectangle
+-- tell application "Finder"
+--     set screenResolution to bounds of window of desktop
+-- end tell
+
+-- adjust scaling using frame info
+-- scalex is respect to xfake, we have xreal and wan to apply a scale to that scalexreal
+-- scalex * xfake = target
+-- scalexreal * xreal = target
+-- scalexreal = scalex * xfake / xreal
+set scalexreal to ${screen.sceneItemTransform.scaleX} * ${
+      screen.sceneItemTransform.sourceWidth
+    } / (item 1 of item 2 of screen)
+set scaleyreal to ${screen.sceneItemTransform.scaleY} * ${
+      screen.sceneItemTransform.sourceHeight
+    } / (item 2 of item 2 of screen)
 
 tell application "System Events" to tell process "${frontmostApp.name}"
     -- default debugging fullscreen
@@ -154,14 +215,15 @@ tell application "System Events" to tell process "${frontmostApp.name}"
     -- set size of window 1 to {item 3 of screenResolution, item 4 of screenResolution}
     set m_pos to position of window 1
     set m_sz to size of window 1
-    set position of window 1 to {${
-      ((screenDims.x - screen.sceneItemTransform.positionX) / 2) / screen.sceneItemTransform.scaleX
-    } + (item 1 of m_pos), ${
-      ((screenDims.y - screen.sceneItemTransform.positionY) / 2) / screen.sceneItemTransform.scaleY
-    } + (item 2 of m_pos)}
-    set size of window 1 to {${
-      ((screenDims.x2 - screenDims.x) / 2) / screen.sceneItemTransform.scaleX
-    } - (item 1 of m_pos), item 2 of m_sz} -- we leave y as is in case it's offscreen
+    display dialog item 1 of m_pos
+    set position of window 1 to {(${
+      screenDims.x - screen.sceneItemTransform.positionX
+    }) / scalexreal + (item 1 of m_pos), (${
+      screenDims.y - screen.sceneItemTransform.positionY
+    }) / scaleyreal + (item 2 of m_pos)}
+    set size of window 1 to {(${
+      screenDims.x2 - screenDims.x
+    }) / scalexreal - (item 1 of m_pos), item 2 of m_sz} -- we leave y as is in case it's offscreen
 end tell
 `);
   } catch (e) {

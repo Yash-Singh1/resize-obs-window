@@ -44,8 +44,8 @@ export default async function Command() {
   const ip: string = (await LocalStorage.getItem("server-ip")) || "localhost";
   const port: string = (await LocalStorage.getItem("server-port")) || "4455";
   const password: string = (await LocalStorage.getItem("server-password")) || "";
-  const paddingX: number = Number(await LocalStorage.getItem("paddingX")) || 0;
-  const paddingY: number = Number(await LocalStorage.getItem("paddingY")) || 0;
+  let paddingX: number = Number(await LocalStorage.getItem("paddingX")) || 0;
+  let paddingY: number = Number(await LocalStorage.getItem("paddingY")) || 0;
 
   console.debug("Padding", paddingX, paddingY);
 
@@ -124,20 +124,21 @@ export default async function Command() {
   );
 
   // Add the padding if needed
-  // TODO: we want padding in pixels so apply it at the AppleScript step
-  if (screenDims.x !== screen.sceneItemTransform.positionX) {
+  paddingX /= screen.sceneItemTransform.scaleX;
+  paddingY /= screen.sceneItemTransform.scaleY;
+  if (screenDims.x !== 0) {
     screenDims.x += paddingX;
   }
 
-  if (screenDims.x2 !== screen.sceneItemTransform.positionX + screen.sceneItemTransform.sourceWidth) {
+  if (screenDims.x2 !== screen.sceneItemTransform.sourceWidth) {
     screenDims.x2 -= paddingX;
   }
 
-  if (screenDims.y !== screen.sceneItemTransform.positionY) {
+  if (screenDims.y !== 0) {
     screenDims.y += paddingY;
   }
 
-  if (screenDims.y2 !== screen.sceneItemTransform.positionY + screen.sceneItemTransform.sourceHeight) {
+  if (screenDims.y2 !== screen.sceneItemTransform.sourceHeight) {
     screenDims.y2 -= paddingY;
   }
 
@@ -157,7 +158,7 @@ export default async function Command() {
   // Something like: `/usr/sbin/system_profiler SPDisplaysDataType | awk '/Resolution:/{ printf "%s %s %s\\n", $2, $4, ($5 == "Retina" ? 2 : 1) }'` would give resolutions, we want pixels
   // Our best bet is to use AppKit's NSScreen class
 
-  console.debug(screen.sceneItemTransform.sourceWidth, screen.sceneItemTransform.sourceHeight);
+  console.debug("OBS Source width", screen.sceneItemTransform.sourceWidth, screen.sceneItemTransform.sourceHeight);
 
   await closeMainWindow();
 

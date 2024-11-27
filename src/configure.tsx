@@ -22,6 +22,7 @@ export default function Command() {
         </ActionPanel>
       }
     >
+      <Form.Description text="Padding sizes are relative to the size of your OBS Canvas" />
       <Form.TextField
         id="paddingX"
         defaultValue="0"

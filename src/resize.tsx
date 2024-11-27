@@ -168,23 +168,37 @@ export default async function Command() {
 use framework "AppKit"
 use scripting additions
 
+-- Get screen pos relative to desktop first
+tell application "System Events" to tell process "${frontmostApp.name}"
+    -- Note: m_pos is relative to the desktop's origin (all monitor's in one rectangle), while screenDims is relative to (0, 0)
+    set m_pos to position of window 1
+    set windowX to item 1 of m_pos
+    set windowY to item 2 of m_pos
+end tell
+
 -- https://developer.apple.com/documentation/appkit/nsscreen, https://forum.latenightsw.com/t/get-sizes-of-monitor-s-via-applescript/1351/4
--- TODO: modify this to iterate over each {origin, dimension} of the screens and find which one contains the frontmost app's window
-set screen to (item 2 of (current application's NSScreen's screens()'s valueForKey:"frame") as list)
+set screens to (current application's NSScreen's screens()'s valueForKey:"frame") as list
+set matchedScreen to missing value
+repeat with oScreen in screens
+    set originX to item 1 of item 1 of oScreen
+    set originY to item 2 of item 1 of oScreen
+    set width to item 1 of item 2 of oScreen
+    set height to item 2 of item 2 of oScreen
+    if windowX ≥ originX and windowX ≤ (originX + width) and windowY ≥ originY and windowY ≤ (originY + height) then
+        set matchedScreen to oScreen
+        exit repeat
+    end if
+end repeat
 
 -- scalex is respect to xfake, we have xreal and wan to apply a scale to that scalexreal
 -- scalex * xfake = scalexreal * xreal
 -- scalexreal = scalex * xfake / xreal
-set scalexreal to ${screen.sceneItemTransform.sourceWidth} / (item 1 of item 2 of screen)
-set scaleyreal to ${screen.sceneItemTransform.sourceHeight} / (item 2 of item 2 of screen)
+set scalexreal to ${screen.sceneItemTransform.sourceWidth} / (item 1 of item 2 of matchedScreen)
+set scaleyreal to ${screen.sceneItemTransform.sourceHeight} / (item 2 of item 2 of matchedScreen)
 
 tell application "System Events" to tell process "${frontmostApp.name}"
-    -- Note: m_pos is relative to the monitor's origin, while screenDims is relative to (0, 0)
-    set m_pos to position of window 1
     set m_sz to size of window 1
-    set position of window 1 to {(${screenDims.x}) / scalexreal + (item 1 of m_pos), (${
-      screenDims.y
-    }) / scaleyreal + (item 2 of m_pos)}
+    set position of window 1 to {(${screenDims.x}) / scalexreal + windowX, (${screenDims.y}) / scaleyreal + windowY}
     set size of window 1 to {(${
       screenDims.x2 - screenDims.x
     }) / scalexreal, item 2 of m_sz} -- we leave height as is in case it's offscreen

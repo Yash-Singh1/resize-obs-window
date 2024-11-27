@@ -190,6 +190,15 @@ repeat with oScreen in screens
     end if
 end repeat
 
+-- https://stackoverflow.com/questions/4845507/the-equivalent-of-minx-y-in-applescript/4848097#4848097
+on min(x, y)
+    if x ≤ y then
+        return x
+    else
+        return y
+    end if
+end min
+
 -- scalex is respect to xfake, we have xreal and wan to apply a scale to that scalexreal
 -- scalex * xfake = scalexreal * xreal
 -- scalexreal = scalex * xfake / xreal
@@ -199,9 +208,8 @@ set scaleyreal to ${screen.sceneItemTransform.sourceHeight} / (item 2 of item 2 
 tell application "System Events" to tell process "${frontmostApp.name}"
     set m_sz to size of window 1
     set position of window 1 to {(${screenDims.x}) / scalexreal + windowX, (${screenDims.y}) / scaleyreal + windowY}
-    set size of window 1 to {(${
-      screenDims.x2 - screenDims.x
-    }) / scalexreal, item 2 of m_sz} -- we leave height as is in case it's offscreen
+    set calculatedWidth to ((${screenDims.x2 - screenDims.x}) / scalexreal)
+    set size of window 1 to {my min(calculatedWidth - windowX + (item 1 of item 1 of matchedScreen), (item 1 of m_sz)), item 2 of m_sz} -- we leave height as is in case it's offscreen
 end tell
 `);
   } catch (e) {

@@ -117,10 +117,10 @@ export default async function Command() {
 
   // screenDims is now a rectangle relative to the OBS canvas, we now need to make it relative to the source
   [screenDims.x, screenDims.x2] = [screenDims.x, screenDims.x2].map((xCoord) =>
-    Math.round((xCoord - screen.sceneItemTransform.positionX) / screen.sceneItemTransform.scaleX)
+    Math.ceil((xCoord - screen.sceneItemTransform.positionX) / screen.sceneItemTransform.scaleX)
   );
   [screenDims.y, screenDims.y2] = [screenDims.y, screenDims.y2].map((yCoord) =>
-    Math.round((yCoord - screen.sceneItemTransform.positionY) / screen.sceneItemTransform.scaleY)
+    Math.ceil((yCoord - screen.sceneItemTransform.positionY) / screen.sceneItemTransform.scaleY)
   );
 
   // Add the padding if needed
@@ -129,7 +129,7 @@ export default async function Command() {
     screenDims.x += paddingX;
   }
 
-  if (screenDims.x2 !== screen.sceneItemTransform.positionX + screen.sceneItemTransform.width) {
+  if (screenDims.x2 !== screen.sceneItemTransform.positionX + screen.sceneItemTransform.sourceWidth) {
     screenDims.x2 -= paddingX;
   }
 
@@ -137,7 +137,7 @@ export default async function Command() {
     screenDims.y += paddingY;
   }
 
-  if (screenDims.y2 !== screen.sceneItemTransform.positionY + screen.sceneItemTransform.height) {
+  if (screenDims.y2 !== screen.sceneItemTransform.positionY + screen.sceneItemTransform.sourceHeight) {
     screenDims.y2 -= paddingY;
   }
 

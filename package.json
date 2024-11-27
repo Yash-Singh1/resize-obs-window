@@ -19,12 +19,13 @@
     {
       "name": "resize",
       "title": "Resize OBS Window",
-      "description": "Resize and move your OBS Window to prevent it from blocking your windows",
+      "description": "Resize and move your window out of the way of your webcam on OBS",
       "mode": "no-view"
     },
     {
       "name": "configure",
       "title": "Configure Raycast Plugin",
+      "subtitle": "OBS Resize",
       "description": "Configure the Raycast Plugin",
       "mode": "view"
     }

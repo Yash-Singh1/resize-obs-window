@@ -2,7 +2,6 @@ import { LocalStorage, Toast, closeMainWindow, getFrontmostApplication, showToas
 import { runAppleScript } from "run-applescript";
 import OBSWebSocket from "obs-websocket-js";
 import { connect } from "./utils/connect";
-import { execSync } from "child_process";
 
 const obs = new OBSWebSocket();
 

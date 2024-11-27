@@ -2,6 +2,7 @@ import { LocalStorage, Toast, closeMainWindow, getFrontmostApplication, showToas
 import { runAppleScript } from "run-applescript";
 import OBSWebSocket from "obs-websocket-js";
 import { connect } from "./utils/connect";
+import { execSync } from "child_process";
 
 const obs = new OBSWebSocket();
 
@@ -43,8 +44,8 @@ export default async function Command() {
   const ip: string = (await LocalStorage.getItem("server-ip")) || "localhost";
   const port: string = (await LocalStorage.getItem("server-port")) || "4455";
   const password: string = (await LocalStorage.getItem("server-password")) || "";
-  const paddingX: number = Number(await LocalStorage.getItem("paddingX")) || 0;
-  const paddingY: number = Number(await LocalStorage.getItem("paddingY")) || 0;
+  let paddingX: number = Number(await LocalStorage.getItem("paddingX")) || 0;
+  let paddingY: number = Number(await LocalStorage.getItem("paddingY")) || 0;
 
   console.debug("Padding", paddingX, paddingY);
 
@@ -114,20 +115,30 @@ export default async function Command() {
     }
   }
 
+  // screenDims is now a rectangle relative to the OBS canvas, we now need to make it relative to the source
+  [screenDims.x, screenDims.x2] = [screenDims.x, screenDims.x2].map((xCoord) =>
+    Math.ceil((xCoord - screen.sceneItemTransform.positionX) / screen.sceneItemTransform.scaleX)
+  );
+  [screenDims.y, screenDims.y2] = [screenDims.y, screenDims.y2].map((yCoord) =>
+    Math.ceil((yCoord - screen.sceneItemTransform.positionY) / screen.sceneItemTransform.scaleY)
+  );
+
   // Add the padding if needed
-  if (screenDims.x !== screen.sceneItemTransform.positionX) {
+  paddingX /= screen.sceneItemTransform.scaleX;
+  paddingY /= screen.sceneItemTransform.scaleY;
+  if (screenDims.x !== 0) {
     screenDims.x += paddingX;
   }
 
-  if (screenDims.x2 !== screen.sceneItemTransform.positionX + screen.sceneItemTransform.width) {
+  if (screenDims.x2 !== screen.sceneItemTransform.sourceWidth) {
     screenDims.x2 -= paddingX;
   }
 
-  if (screenDims.y !== screen.sceneItemTransform.positionY) {
+  if (screenDims.y !== 0) {
     screenDims.y += paddingY;
   }
 
-  if (screenDims.y2 !== screen.sceneItemTransform.positionY + screen.sceneItemTransform.height) {
+  if (screenDims.y2 !== screen.sceneItemTransform.sourceHeight) {
     screenDims.y2 -= paddingY;
   }
 
@@ -142,26 +153,64 @@ export default async function Command() {
 
   const frontmostApp = await getFrontmostApplication();
 
+  // Note: the sourceWidth and sourceHeight properties don't seem to reflect the screen's resolution
+  // We can't use the Window Management API since it requires Raycast Pro
+  // Something like: `/usr/sbin/system_profiler SPDisplaysDataType | awk '/Resolution:/{ printf "%s %s %s\\n", $2, $4, ($5 == "Retina" ? 2 : 1) }'` would give resolutions, we want pixels
+  // Our best bet is to use AppKit's NSScreen class
+
+  console.debug("OBS Source width", screen.sceneItemTransform.sourceWidth, screen.sceneItemTransform.sourceHeight);
+
+  await closeMainWindow();
+
   try {
+    // TODO: Change this to use applescript arguments instead
     await runAppleScript(`
-tell application "Finder"
-    set screenResolution to bounds of window of desktop
+-- use framework "Foundation"
+use framework "AppKit"
+use scripting additions
+
+-- Get screen pos relative to desktop first
+tell application "System Events" to tell process "${frontmostApp.name}"
+    -- Note: m_pos is relative to the desktop's origin (all monitor's in one rectangle), while screenDims is relative to (0, 0)
+    set m_pos to position of window 1
+    set windowX to item 1 of m_pos
+    set windowY to item 2 of m_pos
 end tell
 
+-- https://developer.apple.com/documentation/appkit/nsscreen, https://forum.latenightsw.com/t/get-sizes-of-monitor-s-via-applescript/1351/4
+set screens to (current application's NSScreen's screens()'s valueForKey:"frame") as list
+set matchedScreen to missing value
+repeat with oScreen in screens
+    set originX to item 1 of item 1 of oScreen
+    set originY to item 2 of item 1 of oScreen
+    set width to item 1 of item 2 of oScreen
+    set height to item 2 of item 2 of oScreen
+    if windowX ≥ originX and windowX ≤ (originX + width) and windowY ≥ originY and windowY ≤ (originY + height) then
+        set matchedScreen to oScreen
+        exit repeat
+    end if
+end repeat
+
+-- https://stackoverflow.com/questions/4845507/the-equivalent-of-minx-y-in-applescript/4848097#4848097
+on min(x, y)
+    if x ≤ y then
+        return x
+    else
+        return y
+    end if
+end min
+
+-- scalex is respect to xfake, we have xreal and wan to apply a scale to that scalexreal
+-- scalex * xfake = scalexreal * xreal
+-- scalexreal = scalex * xfake / xreal
+set scalexreal to ${screen.sceneItemTransform.sourceWidth} / (item 1 of item 2 of matchedScreen)
+set scaleyreal to ${screen.sceneItemTransform.sourceHeight} / (item 2 of item 2 of matchedScreen)
+
 tell application "System Events" to tell process "${frontmostApp.name}"
-    -- default debugging fullscreen
-    -- set position of window 1 to {0, 0}
-    -- set size of window 1 to {item 3 of screenResolution, item 4 of screenResolution}
-    set m_pos to position of window 1
     set m_sz to size of window 1
-    set position of window 1 to {${
-      ((screenDims.x - screen.sceneItemTransform.positionX) / 2) / screen.sceneItemTransform.scaleX
-    } + (item 1 of m_pos), ${
-      ((screenDims.y - screen.sceneItemTransform.positionY) / 2) / screen.sceneItemTransform.scaleY
-    } + (item 2 of m_pos)}
-    set size of window 1 to {${
-      ((screenDims.x2 - screenDims.x) / 2) / screen.sceneItemTransform.scaleX
-    } - (item 1 of m_pos), item 2 of m_sz} -- we leave y as is in case it's offscreen
+    set position of window 1 to {(${screenDims.x}) / scalexreal + windowX, (${screenDims.y}) / scaleyreal + windowY}
+    set calculatedWidth to ((${screenDims.x2 - screenDims.x}) / scalexreal)
+    set size of window 1 to {my min(calculatedWidth - windowX + (item 1 of item 1 of matchedScreen), (item 1 of m_sz)), item 2 of m_sz} -- we leave height as is in case it's offscreen
 end tell
 `);
   } catch (e) {
@@ -171,6 +220,4 @@ end tell
     }
     console.error("Error failed", e);
   }
-
-  await closeMainWindow();
 }

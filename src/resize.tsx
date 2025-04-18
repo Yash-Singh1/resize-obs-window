@@ -60,7 +60,12 @@ export default async function Command() {
   // 1. Get the scene items we are targeting
 
   const screen = sceneItems.find((item) => {
-    return (item.inputKind === "screen_capture" || item.sourceName.includes("#screen#")) && item.sceneItemEnabled;
+    return (
+      (item.inputKind === "screen_capture" ||
+        item.inputKind === "macos-avcapture" ||
+        item.sourceName.includes("#screen#")) &&
+      item.sceneItemEnabled
+    );
   });
 
   if (!screen) {
